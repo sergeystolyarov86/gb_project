@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="center" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/16" fx:controller="client.Controller">
+    <stylesheets>
+        <URL value="@/css/style.css" />
+    </stylesheets>
+<MenuBar fx:id="menuBar">
+    <Menu text="file">
+    </Menu>
+</MenuBar>
+
+
+<HBox VBox.vgrow="ALWAYS">
+    <fx:include fx:id="clientPanel" source="client.fxml" HBox.hgrow="ALWAYS"/>
+    <fx:include fx:id="serverPanel" source="server.fxml" HBox.hgrow="ALWAYS"/>
+</HBox>
+    <HBox spacing="5">
+      <Button fx:id="sendOnServer" focusTraversable="false" text="send to storage" onAction="#copyBtnAction" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="sendOnClient" focusTraversable="false" text="send to client" HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+
+
+    <HBox fx:id="authPanel" >
+        <TextField fx:id="loginField" promptText="login" HBox.hgrow="ALWAYS" />
+        <PasswordField fx:id="passwordField" promptText="password" HBox.hgrow="ALWAYS" />
+        <Button minWidth="100" onAction="#tryToAuth" text="enter" />
+        <Button minWidth="100" onAction="#tryToReg" text="reg" />
+    </HBox>
+
+</VBox>
