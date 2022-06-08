@@ -19,7 +19,7 @@ public class NioServer {
     private static final String SERVER_DIR = "C:";
     private Map<String, Boolean> authUsers = new HashMap<>();
     private static SimpleAuthService authService;
-    private  static ByteBuffer inboundBuffer = ByteBuffer.allocate(32);
+    private static ByteBuffer inboundBuffer = ByteBuffer.allocate(32);
 
 
     public static void main(String[] args) throws IOException {
@@ -49,6 +49,7 @@ public class NioServer {
                             auth(socketChannel);
 
                             //  handleReadable(socketChannel);
+
                         }
                     } catch (IOException e) {
                         log("ошибка " + e.getMessage());
@@ -60,8 +61,6 @@ public class NioServer {
     }
 
 
-
-
     private void isAuth(SocketChannel socketChannel) {
 
     }
@@ -71,28 +70,29 @@ public class NioServer {
         int readBytes;
         while ((readBytes = socketChannel.read(inboundBuffer)) > 0) {
             inboundBuffer.flip();
-            socketChannel.write(inboundBuffer);
+            inboundBuffer.clear();
         }
 
         String str = new String(inboundBuffer.array(), StandardCharsets.UTF_8);
-        String[] authInfo =  str.split(" ");
-        if(authInfo[0].equals("/auth")){
+        String[] authInfo = str.split(" ");
+        if (authInfo[0].equals("/auth")) {
 
             String newNick = authService.getNicknameByLoginAndPassword(authInfo[1], authInfo[2]);
 
             if (newNick != null) {
-                    sendMsg("/auth_ok ",socketChannel );
-                    System.out.println("Client authenticated.\n" +
-                            "Address: " + socketChannel.getRemoteAddress());
+                sendMsg("/auth_ok ", socketChannel);
+                System.out.println("Client authenticated.\n" +
+                        "Address: " + socketChannel.getRemoteAddress());
 
-                } else {
-                    sendMsg("Пользователь с таким логином уже авторизовался",socketChannel);
-                }
-            } else {
-                sendMsg("Неверный логин/пароль",socketChannel);
+//                } else {
+//                    sendMsg("Пользователь с таким логином уже авторизовался",socketChannel);
+//                }
+//            } else {
+//                sendMsg("Неверный логин/пароль",socketChannel);
             }
 
-        inboundBuffer.clear();
+            inboundBuffer.clear();
+        }
     }
 
 
@@ -157,11 +157,13 @@ public class NioServer {
         System.out.println("[" + Thread.currentThread().getName() + "] " + message);
     }
 
-    private static void sendMsg(String message,SocketChannel socketChannel)  {
+    private static void sendMsg(String message, SocketChannel socketChannel) {
 
         inboundBuffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
+
         try {
             socketChannel.write(inboundBuffer);
+             System.out.println(new String(inboundBuffer.array(), StandardCharsets.UTF_8));
         } catch (IOException e) {
             e.printStackTrace();
         }

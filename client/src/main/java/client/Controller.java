@@ -43,6 +43,8 @@ public class Controller {
     public HBox authPanel;
     @FXML
     public Button sendOnServer;
+    @FXML
+    public Button sendOnClient;
 
     @FXML
     VBox clientPanel, serverPanel;
@@ -54,22 +56,24 @@ public class Controller {
     private final String IP_ADDRESS = "localhost";
     private final int PORT = 8189;
 
-    private boolean authenticated;
+    private boolean authenticated ;
     private String nickname;
-    SocketChannel socketChannel;
+    private SocketChannel socketChannel;
     private Stage regStage;
     private RegController regcontroller;
-    private DataInputStream in;
-    private DataOutputStream out;
+    private ByteBuffer buffer;
 
 
     public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
-        authPanel.setVisible(!authenticated);
-        authPanel.setManaged(!authenticated);
-        if (!authenticated) {
-            nickname = "";
-        }
+
+            this.authenticated = authenticated;
+            authPanel.setVisible(!authenticated);
+            authPanel.setManaged(!authenticated);
+            clientPanel.setVisible(authenticated);
+            serverPanel.setVisible(authenticated);
+            sendOnServer.setVisible(authenticated);
+            sendOnClient.setVisible(authenticated);
+
     }
 
     void connect() {
@@ -77,53 +81,6 @@ public class Controller {
             socketChannel = SocketChannel.open();
             socketChannel.connect(new InetSocketAddress(IP_ADDRESS, PORT));
             socketChannel.configureBlocking(false);
-
-//            Selector selector = Selector.open();
-//            socketChannel.register(selector, SelectionKey.OP_WRITE);
-//            selector.select();
-
-
-
-//            new Thread(() -> {
-//                try {
-//                    while (true) {
-//                        String str = in.readUTF();
-//                        if (str.startsWith("/")) {
-//                            if (str.equals("/end")) {
-//                                break;
-//                            }
-//                            if (str.startsWith("/auth_ok")) {
-//                                nickname = str.split("\\s+")[1];
-//                                setAuthenticated(true);
-//                                break;
-//                            }
-//                            if (str.startsWith("/reg_ok")) {
-//                                regcontroller.showResult("/reg_ok");
-//                            }
-//                            if (str.startsWith("/reg_no")) {
-//                                regcontroller.showResult("/reg_no");
-//                            }
-//                        }
-//                    }
-//                    while (authenticated) {
-//                        String str = in.readUTF();
-//                        if (str.equals("/end")) {
-//                            break;
-//                        }
-//                    }
-//
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    System.out.println("disconnect");
-//                    setAuthenticated(false);
-//                    try {
-//                        socket.close();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }).start();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -138,18 +95,44 @@ public class Controller {
         }
         String msg = String.format("/auth %s %s ", loginField.getText().trim(), passwordField.getText().trim());
 
-            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
+        buffer = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
 
         try {
             socketChannel.write(buffer);
-            System.out.println(Arrays.toString(buffer.array()));
-            buffer.clear();
         } catch (IOException e) {
             e.printStackTrace();
         }
-            passwordField.clear();
-        }
+        buffer.clear();
+        listen();
+        passwordField.clear();
+    }
 
+    private void listen() {
+
+        try {
+            int readBytes;
+            while ((readBytes = socketChannel.read(buffer)) > 0) {
+                buffer.flip();
+                System.out.println(new String(buffer.array(), StandardCharsets.UTF_8));
+                buffer.clear();
+            }
+
+            String str = new String(buffer.array(), StandardCharsets.UTF_8);
+
+            if (str.startsWith("/auth_ok")) {
+                nickname = str.split("\\s+")[1];
+                setAuthenticated(true);
+            }
+            if (str.startsWith("/reg_ok")) {
+                regcontroller.showResult("/reg_ok");
+            }
+            if (str.startsWith("/reg_no")) {
+                regcontroller.showResult("/reg_no");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     private void createRegWindow() {
