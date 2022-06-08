@@ -18,14 +18,14 @@ public class RegController {
     private TextArea textArea;
 
 
-    @FXML
-    public void tryToReg() {
-        String login = loginField.getText().trim();
-        String password = passwordField.getText().trim();
-        String nickname = nickField.getText().trim();
-
-        controller.registration(login, password, nickname);
-    }
+//    @FXML
+//    public void tryToReg() {
+//        String login = loginField.getText().trim();
+//        String password = passwordField.getText().trim();
+//        String nickname = nickField.getText().trim();
+//
+//        controller.registration(login, password, nickname);
+//    }
 
     public void showResult(String result) {
         if (result.equals("/reg_ok")) {

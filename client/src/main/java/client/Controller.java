@@ -16,10 +16,18 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 
 public class Controller {
@@ -39,19 +47,20 @@ public class Controller {
     @FXML
     VBox clientPanel, serverPanel;
 
+    private static final String FILE_PARAMS_TPL = "FILE_NAME=%s&USERNAME=Bogdan&PASS=qwerty ";
+    public static final String PATH_TO_CLIENT_DIR = "C:/";
 
-    private Socket socket;
-    private DataInputStream in;
-    private DataOutputStream out;
 
     private final String IP_ADDRESS = "localhost";
     private final int PORT = 8189;
 
     private boolean authenticated;
     private String nickname;
-
+    SocketChannel socketChannel;
     private Stage regStage;
     private RegController regcontroller;
+    private DataInputStream in;
+    private DataOutputStream out;
 
 
     public void setAuthenticated(boolean authenticated) {
@@ -63,52 +72,58 @@ public class Controller {
         }
     }
 
-    private void connect() {
+    void connect() {
         try {
-            socket = new Socket(IP_ADDRESS, PORT);
-            in = new DataInputStream(socket.getInputStream());
-            out = new DataOutputStream(socket.getOutputStream());
+            socketChannel = SocketChannel.open();
+            socketChannel.connect(new InetSocketAddress(IP_ADDRESS, PORT));
+            socketChannel.configureBlocking(false);
 
-            new Thread(() -> {
-                try {
-                    while (true) {
-                        String str = in.readUTF();
-                        if (str.startsWith("/")) {
-                            if (str.equals("/end")) {
-                                break;
-                            }
-                            if (str.startsWith("/auth_ok")) {
-                                nickname = str.split("\\s+")[1];
-                                setAuthenticated(true);
-                                break;
-                            }
-                            if (str.startsWith("/reg_ok")) {
-                                regcontroller.showResult("/reg_ok");
-                            }
-                            if (str.startsWith("/reg_no")) {
-                                regcontroller.showResult("/reg_no");
-                            }
-                        }
-                    }
-                    while (authenticated) {
-                        String str = in.readUTF();
-                        if (str.equals("/end")) {
-                            break;
-                        }
-                    }
+//            Selector selector = Selector.open();
+//            socketChannel.register(selector, SelectionKey.OP_WRITE);
+//            selector.select();
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    System.out.println("disconnect");
-                    setAuthenticated(false);
-                    try {
-                        socket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
+
+
+//            new Thread(() -> {
+//                try {
+//                    while (true) {
+//                        String str = in.readUTF();
+//                        if (str.startsWith("/")) {
+//                            if (str.equals("/end")) {
+//                                break;
+//                            }
+//                            if (str.startsWith("/auth_ok")) {
+//                                nickname = str.split("\\s+")[1];
+//                                setAuthenticated(true);
+//                                break;
+//                            }
+//                            if (str.startsWith("/reg_ok")) {
+//                                regcontroller.showResult("/reg_ok");
+//                            }
+//                            if (str.startsWith("/reg_no")) {
+//                                regcontroller.showResult("/reg_no");
+//                            }
+//                        }
+//                    }
+//                    while (authenticated) {
+//                        String str = in.readUTF();
+//                        if (str.equals("/end")) {
+//                            break;
+//                        }
+//                    }
+//
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } finally {
+//                    System.out.println("disconnect");
+//                    setAuthenticated(false);
+//                    try {
+//                        socket.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }).start();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -118,17 +133,23 @@ public class Controller {
 
     @FXML
     public void tryToAuth() {
-        if (socket == null || socket.isClosed()) {
+        if (socketChannel == null || !socketChannel.isConnected()) {
             connect();
         }
-        String msg = String.format("/auth %s %s", loginField.getText().trim(), passwordField.getText().trim());
+        String msg = String.format("/auth %s %s ", loginField.getText().trim(), passwordField.getText().trim());
+
+            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
+
         try {
-            out.writeUTF(msg);
-            passwordField.clear();
+            socketChannel.write(buffer);
+            System.out.println(Arrays.toString(buffer.array()));
+            buffer.clear();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+            passwordField.clear();
+        }
+
 
 
     private void createRegWindow() {
@@ -136,7 +157,7 @@ public class Controller {
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/fxml/reg.fxml"));
             Parent root = fxmlLoader.load();
             regStage = new Stage();
-            regStage.setTitle("ChatGB registration");
+            regStage.setTitle("Net storage registration");
             regStage.setScene(new Scene(root, 400, 320));
 
             regcontroller = fxmlLoader.getController();
@@ -156,49 +177,73 @@ public class Controller {
         }
         Platform.runLater(() -> regStage.show());
     }
+//
+//    public void registration(String login, String password, String nickname) {
+//        if (socket == null || socket.isClosed()) {
+//            connect();
+//        }
+//        String msg = String.format("/reg %s %s %s", login, password, nickname);
+//        try {
+//            out.writeUTF(msg);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
-    public void registration(String login, String password, String nickname) {
-        if (socket == null || socket.isClosed()) {
-            connect();
-        }
-        String msg = String.format("/reg %s %s %s", login, password, nickname);
-        try {
-            out.writeUTF(msg);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public void copyBtnAction(ActionEvent actionEvent) {
-        ClientController clientPC = (ClientController) clientPanel.getProperties().get("ctrl");
-        ClientController serverPC = (ClientController) serverPanel.getProperties().get("ctrl");
 
-        if (clientPC.getSelectedFileName() == null && serverPC.getSelectedFileName() == null) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "не был выбран файл", ButtonType.OK);
-            alert.showAndWait();
-            return;
-        }
-        ClientController srcPc = null, dstPC = null;
-        if(clientPC.getSelectedFileName()!=null){
-            srcPc = clientPC;
-            dstPC = serverPC;
-        }
-        if(serverPC.getSelectedFileName()!=null){
-            srcPc = serverPC;
-            dstPC = clientPC;
-        }
-        Path srcPath = Paths.get(srcPc.getCurrentPath(),srcPc.getSelectedFileName());
-        Path dstPAth = Paths.get(dstPC.getCurrentPath()).resolve(srcPath.getFileName().toString());
-
-        try {
-            Files.copy(srcPath,dstPAth);
-            dstPC.updateList(Paths.get(dstPC.getCurrentPath()));
-        } catch (IOException e) {
-           Alert alert = new Alert(Alert.AlertType.ERROR,"не удалось скопировать файл",ButtonType.OK);
-           alert.showAndWait();
-        }
+//        ClientController clientPC = (ClientController) clientPanel.getProperties().get("ctrl");
+//        ClientController serverPC = (ClientController) serverPanel.getProperties().get("ctrl");
+//
+//        if (clientPC.getSelectedFileName() == null && serverPC.getSelectedFileName() == null) {
+//            Alert alert = new Alert(Alert.AlertType.ERROR, "не был выбран файл", ButtonType.OK);
+//            alert.showAndWait();
+//            return;
+//        }
+//        ClientController srcPc = null, dstPC = null;
+//        if(clientPC.getSelectedFileName()!=null){
+//            srcPc = clientPC;
+//            dstPC = serverPC;
+//        }
+//        if(serverPC.getSelectedFileName()!=null){
+//            srcPc = serverPC;
+//            dstPC = clientPC;
+//        }
+//        Path srcPath = Paths.get(srcPc.getCurrentPath(),srcPc.getSelectedFileName());
+//        Path dstPAth = Paths.get(dstPC.getCurrentPath()).resolve(srcPath.getFileName().toString());
+//
+//        try {
+//            Files.copy(srcPath,dstPAth);
+//            dstPC.updateList(Paths.get(dstPC.getCurrentPath()));
+//        } catch (IOException e) {
+//           Alert alert = new Alert(Alert.AlertType.ERROR,"не удалось скопировать файл",ButtonType.OK);
+//           alert.showAndWait();
+//        }
     }
 }
 
+//    void sendFileToServerWithNio() throws IOException {
+//        SocketChannel socketChannel = SocketChannel.open();
+//        socketChannel.connect(new InetSocketAddress("localhost", 45001));
+//        socketChannel.configureBlocking(false);
+//
+//        Selector selector = Selector.open();
+//        socketChannel.register(selector, SelectionKey.OP_WRITE);
+//
+//        selector.select();
+//
+//        ByteBuffer byteBuffer = ByteBuffer.allocate(2);
+//        RandomAccessFile fileForSend = new RandomAccessFile(PATH_TO_CLIENT_DIR + "cat1.png", "rw");
+//        FileChannel fileChannel = fileForSend.getChannel();
+//
+//        for (SelectionKey selectionKey : selector.selectedKeys()) {
+//            if (selectionKey.isValid() && selectionKey.isWritable()) {
+//                while (fileChannel.read(byteBuffer) != -1) {
+//                    byteBuffer.flip();
+//                    socketChannel.write(byteBuffer);
+//                    byteBuffer.clear();
+//                }
+//            }
+//        }
 
 

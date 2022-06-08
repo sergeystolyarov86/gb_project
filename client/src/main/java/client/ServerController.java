@@ -9,7 +9,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
+
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -76,7 +76,7 @@ public class ServerController implements Initializable {
         fileNameColumn.setPrefWidth(240);
 
 
-        filesTable.getColumns().addAll(fileTypeColumn,fileNameColumn);
+       filesTable.getColumns().addAll(fileTypeColumn,fileNameColumn);
         filesTable.getSortOrder().add(fileTypeColumn);
 
         disksBox.getItems().clear();
@@ -95,7 +95,7 @@ public class ServerController implements Initializable {
             }
         });
 
-        updateList(Paths.get(""));
+        updateList(Paths.get("C:\\"));
     }
 
     public void updateList(Path path){

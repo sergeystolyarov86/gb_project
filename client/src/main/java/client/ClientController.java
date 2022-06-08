@@ -46,7 +46,6 @@ public class ClientController implements Initializable {
     private DataOutputStream out;
 
 
-
     private boolean authenticated;
     private String nickname;
 
@@ -70,17 +69,17 @@ public class ClientController implements Initializable {
 //        panel.setVisible(false);
 //        menuBar.setVisible(false);
 //        sendOnServer.setVisible(false);
-        TableColumn<FileInfo,String> fileTypeColumn = new TableColumn<>();
+        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
         fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
         fileTypeColumn.setPrefWidth(50);
 
 
-        TableColumn<FileInfo,String> fileNameColumn = new TableColumn<>("Filename");
+        TableColumn<FileInfo, String> fileNameColumn = new TableColumn<>("Filename");
         fileNameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
         fileNameColumn.setPrefWidth(240);
 
 
-        filesTable.getColumns().addAll(fileTypeColumn,fileNameColumn);
+        filesTable.getColumns().addAll(fileTypeColumn, fileNameColumn);
         filesTable.getSortOrder().add(fileTypeColumn);
 
         disksBox.getItems().clear();
@@ -89,51 +88,52 @@ public class ClientController implements Initializable {
         }
         disksBox.getSelectionModel().select(0);
         filesTable.setOnMouseClicked(event -> {
-            if(event.getClickCount() == 2){
+            if (event.getClickCount() == 2) {
                 Path path = Paths.get(pathField.getText())
                         .resolve(filesTable.getSelectionModel()
-                        .getSelectedItem().getFilename());
-                if(Files.isDirectory(path)){
+                                .getSelectedItem().getFilename());
+                if (Files.isDirectory(path)) {
                     updateList(path);
                 }
             }
         });
 
-        updateList(Paths.get(""));
+        updateList(Paths.get("C:\\"));
     }
 
-    public void updateList(Path path){
+    public void updateList(Path path) {
 
         try {
-         pathField.setText(path.normalize().toAbsolutePath().toString());
+            pathField.setText(path.normalize().toAbsolutePath().toString());
             filesTable.getItems().clear();
             filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
             filesTable.sort();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.WARNING,"не удалось обновить список файлов");
+            Alert alert = new Alert(Alert.AlertType.WARNING, "не удалось обновить список файлов");
             alert.showAndWait();
         }
-
     }
 
     public void btnPathUpAction(ActionEvent actionEvent) {
         Path upperPath = Paths.get(pathField.getText()).getParent();
-        if(upperPath != null){
+        if (upperPath != null) {
             updateList(upperPath);
         }
     }
 
     public void selectDiskAction(ActionEvent actionEvent) {
-        ComboBox <String> element = (ComboBox<String>) actionEvent.getSource();
+        ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
         updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
     }
-    public String getSelectedFileName(){
-        if(!filesTable.isFocused()){
+
+    public String getSelectedFileName() {
+        if (!filesTable.isFocused()) {
             return null;
         }
         return filesTable.getSelectionModel().getSelectedItem().getFilename();
     }
-    public  String getCurrentPath(){
+
+    public String getCurrentPath() {
         return pathField.getText();
     }
 }
